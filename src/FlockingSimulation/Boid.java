@@ -2,27 +2,25 @@ package FlockingSimulation;
 
 import java.awt.Point;
 import java.util.Random;
-import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Boid implements Runnable
 {
-    public Point position;
     public int width, height, perception;
-    double xVelocity, yVelocity, x, y;
+    public Point position;
+    public Vector velocity;
     public Model model;
     public Random rand = new Random();
     
-    public Boid(int xV, int yV, Model m, int w, int h)
+    public Boid(double x, double y, Model m, int w, int h)
     {
         model = m;
         this.perception = 50;
         this.width = w;
         this.height = h;
         this.position = new Point(rand.nextInt(w), rand.nextInt(h));
-        this.x = xV;
-        this.y = yV;
+        this.velocity = new Vector(x, y);
     }
 
     private void updateVelocity() 
@@ -37,50 +35,45 @@ public class Boid implements Runnable
         int totalX = 0;
         int totalY = 0;
         int total = 0;
-        Vector v;
+        
         for(Boid b : model.boids)
         {
-            double distance = this.position.distance(b.position);
-            if(b != this && distance < perception)
+            double distance = this.position.distance(b.position.x, b.position.y);
+            if(b != this)
             {
-                total++;
-                totalX += b.xVelocity;
-                totalY += b.yVelocity;
+                if(distance < perception)
+                {
+                    total++;
+                    totalX += b.velocity.x;
+                    totalY += b.velocity.y;
+                }
             }
-        }
         
         // steering force (desired - velocity)
         if(total > 0)
         {
-            if(x > 0){
-                x = (totalX / total) - Math.abs(x);
+            if(velocity.x > 0){
+                velocity.x = (totalX / total) - Math.abs(velocity.x);
             }
             else{
-                x = (totalX / total) + x;
+                velocity.x = (totalX / total) + velocity.x;
             }
             
-            if(y > 0)
+            if(velocity.y > 0)
             {
-                y = (totalY / total) - Math.abs(y);
+                velocity.y = (totalY / total) - Math.abs(velocity.y);
             }
             else
             {
-                y = (totalY / total) + y;
+                velocity.y = (totalY / total) + velocity.y;
             }
         }
-//        
-//        if(x == 0){
-//            x = 1;
-//        }
-//        if(y == 0){
-//            y = 1;
-//        }
     }
     
     private void moveBoid() 
     {
-        position.x += x;
-        position.y += y;
+        position.x += velocity.x;
+        position.y += velocity.y;
 
         if(position.x > width + 10){
             position.x = -10;

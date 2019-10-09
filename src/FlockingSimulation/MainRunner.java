@@ -22,5 +22,4 @@ public class MainRunner {
 	frame.setVisible(true);
         frame.setResizable(false);
     }
-
 }
