@@ -1,6 +1,7 @@
 package FlockingSimulation;
 
 import java.awt.Point;
+import java.util.ArrayList;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -12,68 +13,84 @@ public class Boid implements Runnable
     public Vector velocity;
     public Model model;
     public Random rand = new Random();
+    public float maxForce;
+    public int maxSpeed;
     
     public Boid(double x, double y, Model m, int w, int h)
     {
         model = m;
-        this.perception = 50;
+        this.perception = 20;
         this.width = w;
         this.height = h;
         this.position = new Point(rand.nextInt(w), rand.nextInt(h));
         this.velocity = new Vector(x, y);
+        this.maxForce = 0.01f;
+        this.maxSpeed = 3;
     }
 
     private void updateVelocity() 
     {
         // updates the velocity(direction) by looking at the surrounding boids
-        align();
-        moveBoid();
+        Vector acceleration = align(model.boids);
+        moveBoid(acceleration);
     }
     
-    private void align()
+    private Vector align(ArrayList<Boid> boids)
     {
-        int totalX = 0;
-        int totalY = 0;
+        Vector acceleration = new Vector(0,0);
         int total = 0;
         
-        for(Boid b : model.boids)
+        for(Boid b : boids)
         {
-            double distance = this.position.distance(b.position.x, b.position.y);
+            double distance = position.distance(b.position);
             if(b != this)
             {
                 if(distance < perception)
                 {
                     total++;
-                    totalX += b.velocity.x;
-                    totalY += b.velocity.y;
+                    acceleration.x += b.velocity.x;
+                    acceleration.y += b.velocity.y;
                 }
             }
+        }
         
         // steering force (desired - velocity)
         if(total > 0)
         {
-            if(velocity.x > 0){
-                velocity.x = (totalX / total) - Math.abs(velocity.x);
-            }
-            else{
-                velocity.x = (totalX / total) + velocity.x;
-            }
+            acceleration.x = (acceleration.x / total);
+            acceleration.y = (acceleration.y / total);
+            acceleration.x -= velocity.x;
+            acceleration.y -= velocity.y;
             
-            if(velocity.y > 0)
-            {
-                velocity.y = (totalY / total) - Math.abs(velocity.y);
+            // magnitude?
+            //acceleration.setMag(this.maxSpeed);
+            
+            if(acceleration.x > maxForce){
+                acceleration.x = maxForce;
             }
-            else
-            {
-                velocity.y = (totalY / total) + velocity.y;
+            if(acceleration.y > maxForce){
+                acceleration.y = maxForce;
             }
         }
+        
+        return acceleration;
     }
     
-    private void moveBoid() 
+    private void moveBoid(Vector acceleration) 
     {
+        
+        velocity.x += acceleration.x;
+        velocity.y += acceleration.y;
         position.x += velocity.x;
         position.y += velocity.y;
+        
+        if(velocity.x > maxSpeed){
+            velocity.x = maxSpeed;
+        }
+        
+        if(velocity.y > maxSpeed){
+            velocity.y = maxSpeed;
+        }
 
         if(position.x > width + 10){
             position.x = -10;
@@ -106,7 +123,7 @@ public class Boid implements Runnable
         {
             try {
                 updateVelocity();
-                Thread.sleep(50);
+                Thread.sleep(10);
             } catch (InterruptedException ex) {
                 Logger.getLogger(Boid.class.getName()).log(Level.SEVERE, null, ex);
             }
