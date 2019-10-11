@@ -22,7 +22,9 @@ class DrawPanel extends JPanel
         g.setColor(Color.WHITE);
         for(Boid b : model.getBoids())
         {
-            g.fillOval(b.position.x, b.position.y, 10, 10);
+            int x = (int)b.position.x;
+            int y = (int)b.position.y;
+            g.fillOval(x, y, 10, 10);
         }
     }
 }

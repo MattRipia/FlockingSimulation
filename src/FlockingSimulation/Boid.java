@@ -9,103 +9,194 @@ import java.util.logging.Logger;
 public class Boid implements Runnable
 {
     public int width, height, perception;
-    public Point position;
+    public Vector position;
     public Vector velocity;
     public Model model;
     public Random rand = new Random();
     public float maxForce;
     public int maxSpeed;
+    public int seperationValue;
+    public int cohesionValue;
     
     public Boid(double x, double y, Model m, int w, int h)
     {
         model = m;
-        this.perception = 20;
         this.width = w;
         this.height = h;
-        this.position = new Point(rand.nextInt(w), rand.nextInt(h));
+        this.position = new Vector(rand.nextInt(w), rand.nextInt(h));
         this.velocity = new Vector(x, y);
-        this.maxForce = 0.01f;
+        this.maxForce = 0.05f;
         this.maxSpeed = 3;
+        this.perception = 40;
+        this.seperationValue = 80;
+        this.cohesionValue = 15;
     }
 
     private void updateVelocity() 
     {
         // updates the velocity(direction) by looking at the surrounding boids
-        Vector acceleration = align(model.boids);
-        moveBoid(acceleration);
+        Vector ali = align();
+        Vector sep = seperation();
+        Vector coh = cohesion();
+        
+        // scale these values up
+        ali.mult(2.5);
+        sep.mult(1.5);
+        coh.mult(1.3);
+        
+        // get the total acceleration needed by adding all these values
+        Vector acc = new Vector(0,0);
+        acc.add(ali);
+        acc.add(sep);
+        acc.add(coh);
+        
+        // apply this acceleration to the boid
+        moveBoid(acc);
+        
+        // check the boid is still within the window, or else relocate it
+        checkEdges();
     }
     
-    private Vector align(ArrayList<Boid> boids)
+    
+    private Vector seperation()
+    {
+        Vector steeringForce = new Vector(0,0);
+        int total = 0;
+        
+        for(Boid b : model.getBoids())
+        {
+            double distance = Vector.dist(this.position, b.position);
+            if(b != this)
+            {
+                if(distance < seperationValue && distance > 0)
+                {
+                    total++;
+                    
+                    // get the difference in position
+                    Vector differnce = Vector.sub(this.position, b.position);
+                    
+                    // normlaize the difference
+                    differnce.normalize();
+                    
+                    // divide the difference by the distance
+                    differnce.div(distance);
+                    
+                    // add the difference to the steering force
+                    steeringForce.add(differnce);
+                }
+            }
+        }
+        
+        // if more than one boid was found, divide the steering force by this many
+        if(total > 0){
+            steeringForce.div(total);
+        }
+        
+        // if the magnitude is greater than 0, or else return a new vector (0,0)
+        if (steeringForce.mag() > 0) {
+            steeringForce.normalize();
+            steeringForce.mult(maxSpeed);
+            steeringForce.sub(velocity);
+            steeringForce.limit(maxForce);
+            return steeringForce;
+        }
+
+        return new Vector(0,0);
+    }
+    
+    private Vector align()
     {
         Vector acceleration = new Vector(0,0);
         int total = 0;
         
-        for(Boid b : boids)
+        for(Boid b : model.getBoids())
         {
-            double distance = position.distance(b.position);
+            double distance = Vector.dist(this.position, b.position);
             if(b != this)
             {
-                if(distance < perception)
+                if(distance < perception && distance > 0)
                 {
                     total++;
-                    acceleration.x += b.velocity.x;
-                    acceleration.y += b.velocity.y;
+                    
+                    // add b's velocity to the acceleration vector
+                    acceleration.add(b.velocity);
                 }
             }
         }
         
         // steering force (desired - velocity)
-        if(total > 0)
+        if(total > 0){
+           acceleration.div(total);
+           acceleration.normalize();
+           acceleration.mult(maxSpeed);
+           acceleration.sub(velocity);
+           acceleration.limit(maxForce);
+        }
+        
+        //System.out.println("acceleration: " + acceleration.x + " " + acceleration.y);
+        return acceleration;
+    }
+
+    private Vector cohesion() 
+    {
+        Vector pos = new Vector(0,0);
+        int total = 0;
+        
+        for(Boid b : model.getBoids())
         {
-            acceleration.x = (acceleration.x / total);
-            acceleration.y = (acceleration.y / total);
-            acceleration.x -= velocity.x;
-            acceleration.y -= velocity.y;
-            
-            // magnitude?
-            //acceleration.setMag(this.maxSpeed);
-            
-            if(acceleration.x > maxForce){
-                acceleration.x = maxForce;
-            }
-            if(acceleration.y > maxForce){
-                acceleration.y = maxForce;
+            double distance = Vector.dist(this.position, b.position);
+            if(b != this)
+            {
+                if(distance < cohesionValue && distance > 0)
+                {
+                    // if the current boid is close to others, add their distance to a new vector
+                    pos.add(b.position);
+                    total++;
+                }
             }
         }
         
-        return acceleration;
+        // if more than one boid was found, divide the steering force by this many and find the steering force
+        if(total > 0){
+            pos.div(total);
+            Vector steeringForce = Vector.sub(pos, this.position);
+            steeringForce.normalize();
+            steeringForce.mult(maxSpeed);
+            steeringForce.sub(velocity);
+            steeringForce.limit(maxForce);
+            return steeringForce;
+        }
+        
+        // else return an empty vector -> no change in acceleration
+        return new Vector(0,0);
     }
     
     private void moveBoid(Vector acceleration) 
     {
+        // add the acceleration to the current velocity
+        velocity.add(acceleration);
         
-        velocity.x += acceleration.x;
-        velocity.y += acceleration.y;
-        position.x += velocity.x;
-        position.y += velocity.y;
+        // make sure the velocity is less than max speed
+        velocity.limit(maxSpeed);
         
-        if(velocity.x > maxSpeed){
-            velocity.x = maxSpeed;
-        }
-        
-        if(velocity.y > maxSpeed){
-            velocity.y = maxSpeed;
-        }
+        // apply the velocity to the position -> making the boid move
+        position.add(velocity);
+    }
 
+    private void checkEdges() 
+    {
         if(position.x > width + 10){
-            position.x = -10;
+            position.x = 0;
+        }
+        else if(position.x <= 0){
+            position.x = width + 9;
         }
 
         if(position.y > height + 10){
-            position.y = -10;
-        }
-
-        if(position.x < -10){
-            position.x = width + 10;
-        }
-
-        if(position.y < -10){
-            position.y = height + 10;
+            position.y = 0;
+        } 
+        else if(position.y <= 0){
+            position.y = height + 9;
         }
     }
     

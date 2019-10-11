@@ -15,7 +15,7 @@ public class MainPanel extends JPanel implements ActionListener{
     public Timer timer;
     public DrawPanel drawPanel;
     public Model model;
-    int width = 500, height = 500;
+    int width = 1200, height = 900;
     
     public MainPanel()
     {

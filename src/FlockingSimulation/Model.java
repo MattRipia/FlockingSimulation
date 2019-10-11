@@ -14,14 +14,14 @@ class Model
         width = w;
         height = h;
         
-        for(int i = 0 ; i < 50; i++)
+        for(int i = 0 ; i < 500; i++)
         {
-            int xV = rand.nextInt(3) - 2;
-            int yV = rand.nextInt(3) - 2;
+            int xV = rand.nextInt(7) - 3;
+            int yV = rand.nextInt(7) - 3;
             
-            while(xV == 0 || yV == 0){
-                xV = rand.nextInt(3) - 2;
-                yV = rand.nextInt(3) - 2;
+            while(xV == 0 && yV == 0){
+                xV = rand.nextInt(7) - 3;
+                yV = rand.nextInt(7) - 3;
             }
             
             Boid b = new Boid(xV, yV, this, w, h);
