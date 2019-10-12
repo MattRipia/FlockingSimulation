@@ -40,9 +40,9 @@ public class Boid implements Runnable
         Vector coh = cohesion();
         
         // scale these values up
-        ali.mult(2.5);
-        sep.mult(1.5);
-        coh.mult(1.3);
+        ali.mult(model.alignmentValue);
+        sep.mult(model.seperationValue);
+        coh.mult(model.cohesionValue);
         
         // get the total acceleration needed by adding all these values
         Vector acc = new Vector(0,0);
