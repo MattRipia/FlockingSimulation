@@ -32,9 +32,14 @@ class Model
             }
             
             Boid b = new Boid(xV, yV, this, w, h);
+            addBoid(b);
+
+        }
+        
+        for(Boid b : boids)
+        {
             Thread t = new Thread(b);
             t.start();
-            addBoid(b);
         }
     }
     

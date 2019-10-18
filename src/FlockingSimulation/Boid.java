@@ -60,7 +60,7 @@ public class Boid implements Runnable
     
     private Vector seperation()
     {
-        Vector steeringForce = new Vector(0,0);
+        Vector acceleration = new Vector(0,0);
         int total = 0;
         
         for(Boid b : model.getBoids())
@@ -82,23 +82,32 @@ public class Boid implements Runnable
                     differnce.div(distance);
                     
                     // add the difference to the steering force
-                    steeringForce.add(differnce);
+                    acceleration.add(differnce);
                 }
             }
         }
         
         // if more than one boid was found, divide the steering force by this many
         if(total > 0){
-            steeringForce.div(total);
+            acceleration.div(total);
         }
         
         // if the magnitude is greater than 0, or else return a new vector (0,0)
-        if (steeringForce.mag() > 0) {
-            steeringForce.normalize();
-            steeringForce.mult(maxSpeed);
-            steeringForce.sub(velocity);
-            steeringForce.limit(maxForce);
-            return steeringForce;
+        if (acceleration.mag() > 0) 
+        {
+            // normlaize the magnitude (set it to 1, but keep the position the same
+            acceleration.normalize();
+            
+            // multiply the vector by the maxSpeed
+            acceleration.mult(maxSpeed);
+            
+            // subtract our own velocity
+            acceleration.sub(velocity);
+            
+            
+             // limit the result depending if mag > maxforce
+            acceleration.limit(maxForce);
+            return acceleration;
         }
 
         return new Vector(0,0);
@@ -124,12 +133,22 @@ public class Boid implements Runnable
             }
         }
         
-        // steering force (desired - velocity)
-        if(total > 0){
+        // steering force (desired - own velocity)
+        if(total > 0)
+        {
+           // average out the position of nearby nodes
            acceleration.div(total);
+           
+            // normlaize the magnitude (set it to 1, but keep the position the same
            acceleration.normalize();
+           
+           // multiply the vector by the maxSpeed
            acceleration.mult(maxSpeed);
+           
+           // subtract our own velocity
            acceleration.sub(velocity);
+           
+           // limit the result depending if mag > maxforce
            acceleration.limit(maxForce);
         }
         
@@ -157,14 +176,26 @@ public class Boid implements Runnable
         }
         
         // if more than one boid was found, divide the steering force by this many and find the steering force
-        if(total > 0){
+        if(total > 0)
+        {
+            // average out the position of nearby nodes
             pos.div(total);
-            Vector steeringForce = Vector.sub(pos, this.position);
-            steeringForce.normalize();
-            steeringForce.mult(maxSpeed);
-            steeringForce.sub(velocity);
-            steeringForce.limit(maxForce);
-            return steeringForce;
+            
+            // subtract our own position from the average
+            Vector acceleration = Vector.sub(pos, this.position);
+            
+            // normlaize the magnitude (set it to 1, but keep the position the same
+            acceleration.normalize();
+            
+            // multiply the vector by the maxSpeed
+            acceleration.mult(maxSpeed);
+            
+            // subtract our own velocity
+            acceleration.sub(velocity);
+            
+            // limit the result depending if mag > maxforce
+            acceleration.limit(maxForce);
+            return acceleration;
         }
         
         // else return an empty vector -> no change in acceleration
@@ -203,13 +234,6 @@ public class Boid implements Runnable
     @Override
     public void run() 
     {
-        try {
-            // initial sleep so all the threads have a chance to start
-            Thread.sleep(1000);
-        } catch (InterruptedException ex) {
-            Logger.getLogger(Boid.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        
         while(true)
         {
             try {
